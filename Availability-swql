@@ -1,0 +1,47 @@
+MTTR (Mean Time to Repair)
+Definition: MTTR measures the average time taken to repair a system or component after a failure occurs. It includes the time from when the failure is reported until the system is restored to normal operation
+
+Purpose:
+Helps organizations assess how quickly they can respond to and resolve issues.
+Indicates the efficiency of the repair process and the effectiveness of incident management
+
+MTBF (Mean Time Between Failures)
+Definition: MTBF measures the average time elapsed between failures of a system or component. It is used to indicate the reliability of a system.
+Purpose:
+Helps organizations understand how often failures occur and the expected operational uptime.
+Useful for planning maintenance schedules and assessing the overall reliability of systems.
+
+Importance in SolarWinds
+In SolarWinds, monitoring MTTR and MTBF allows IT teams to:
+
+Improve Service Reliability: By analyzing these metrics, organizations can identify patterns in failures and improve their systems to enhance reliability.
+
+Optimize Incident Response: Understanding MTTR helps in streamlining incident management processes and reducing downtime, which is critical for maintaining service levels.
+
+Resource Planning: Both metrics inform maintenance schedules, resource allocation, and training needs, ensuring that teams are prepared for potential outages.
+
+Performance Tracking: Regular monitoring of MTTR and MTBF provides insights into operational performance and can highlight areas needing improvement.
+
+swql:
+SELECT 
+    n.Caption AS [Node Name], 
+    MIN(d.DateTimeFrom) AS [First Outage], 
+    MAX(d.DateTimeUntil) AS [Last Outage], 
+    d.EntityId,  
+    d.State, 
+    SUM(d.TotalDurationMin) AS [Total Downtime (Min)],
+    COUNT(d.State) AS [Total Failures/Outages],
+    SUM(d.TotalDurationMin) / NULLIF(COUNT(d.State), 0) AS [MTTR (Min)], -- Mean Time To Repair
+    DATEDIFF(MINUTE, MIN(d.DateTimeFrom), MAX(d.DateTimeUntil)) - SUM(d.TotalDurationMin) AS [MTBF (Min)] -- Mean Time Between Failures in minutes
+FROM 
+    Orion.NetObjectDowntime d
+JOIN 
+    Orion.Nodes n ON d.NodeId = n.NodeID
+WHERE 
+    n.Caption LIKE '%&&&&%'
+    AND d.State=1
+    AND d.DateTimeFrom BETWEEN '2023-01-01' AND '2024-12-30'
+GROUP BY 
+    n.Caption, 
+    d.EntityId,  
+    d.State
